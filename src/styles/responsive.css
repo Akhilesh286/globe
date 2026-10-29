@@ -1,0 +1,274 @@
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 50;
+    width: min(370px, 88vw);
+    height: 100dvh;
+    transform: translateX(-104%);
+    transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 24px 0 70px rgba(0, 0, 0, 0.55);
+  }
+
+  .sidebar--open {
+    transform: translateX(0);
+  }
+
+  .sidebar__close {
+    display: inline-grid;
+  }
+
+  .mobile-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 45;
+    display: block;
+    padding: 0;
+    border: 0;
+    background: rgba(3, 7, 13, 0.58);
+    backdrop-filter: blur(3px);
+    animation: fade-in 160ms ease both;
+  }
+
+  .mobile-topbar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 18;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    height: 55px;
+    padding: 0 14px;
+    background: linear-gradient(180deg, rgba(7, 13, 23, 0.92), rgba(7, 13, 23, 0));
+  }
+
+  .mobile-topbar__menu {
+    border-color: rgba(72, 97, 130, 0.4);
+    background: rgba(13, 23, 38, 0.7);
+    backdrop-filter: blur(10px);
+  }
+
+  .mobile-topbar__brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--text-soft);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+  }
+
+  .mobile-topbar__brand svg {
+    color: var(--accent);
+  }
+
+  .stage-meta {
+    top: 67px;
+    left: 16px;
+  }
+
+  .stage-tools {
+    top: 63px;
+    right: 14px;
+  }
+
+  .stage-hint {
+    display: none;
+  }
+
+  .stage-selection {
+    top: 119px;
+    bottom: auto;
+  }
+
+  .stage-attribution {
+    left: 14px;
+    bottom: 12px;
+    max-width: calc(100% - 160px);
+  }
+
+  .stage-attribution span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .zoom-controls {
+    right: 14px;
+    bottom: 14px;
+  }
+
+  .stage-loading {
+    bottom: 150px;
+  }
+
+  .layer-panel {
+    width: min(292px, calc(100vw - 28px));
+  }
+
+  .modal-backdrop {
+    padding: 14px;
+  }
+
+  .modal {
+    max-height: calc(100dvh - 28px);
+  }
+}
+
+@media (max-width: 620px) {
+  .stage-meta__text {
+    display: none;
+  }
+
+  .stage-meta {
+    top: 66px;
+  }
+
+  .stage-tool {
+    height: 36px;
+  }
+
+  .stage-tool--icon {
+    width: 36px;
+  }
+
+  .stage-tools {
+    top: 62px;
+    right: 12px;
+  }
+
+  .stage-tool span:not(.stage-tool__dot) {
+    display: none;
+  }
+
+  .stage-tool:not(.stage-tool--icon) {
+    width: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .stage-tool__dot {
+    position: absolute;
+    transform: translate(11px, -10px);
+  }
+
+  .stage-selection {
+    top: 110px;
+    max-width: calc(100% - 28px);
+  }
+
+  .stage-selection__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .country-hero {
+    gap: 11px;
+  }
+
+  .flag--hero {
+    width: 70px;
+    height: 48px;
+    font-size: 16px;
+  }
+
+  .country-hero__title {
+    font-size: 20px;
+  }
+
+  .stat-grid {
+    gap: 6px;
+  }
+
+  .stat-card {
+    padding: 8px 9px;
+  }
+
+  .stat-card__value {
+    font-size: 15px;
+  }
+
+  .stat-card__value--area {
+    font-size: 13px;
+  }
+
+  .modal__header {
+    padding: 14px 15px 13px;
+  }
+
+  .modal__body {
+    padding: 4px 15px 16px;
+  }
+
+  .modal__footer {
+    padding: 11px 15px calc(11px + env(safe-area-inset-bottom));
+  }
+
+  .modal__footer p {
+    display: none;
+  }
+
+  .modal__footer .button {
+    width: 100%;
+  }
+
+  .modal__actions .button {
+    width: 100%;
+  }
+
+  .stage-attribution {
+    max-width: calc(100% - 150px);
+    font-size: 9.5px;
+  }
+}
+
+@media (max-width: 380px) {
+  .sidebar {
+    width: 94vw;
+  }
+
+  .stage-meta {
+    display: none;
+  }
+
+  .stage-selection {
+    top: 64px;
+    right: 12px;
+    left: auto;
+    transform: none;
+    max-width: 60vw;
+  }
+
+  .stage-attribution span {
+    display: none;
+  }
+}
+
+@media (max-height: 620px) {
+  .sidebar__header {
+    padding-top: 14px;
+    padding-bottom: 10px;
+  }
+
+  .sidebar__search {
+    padding-bottom: 10px;
+  }
+
+  .sidebar__footer {
+    padding-top: 8px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+
+  .brand__subtitle {
+    display: none;
+  }
+}
