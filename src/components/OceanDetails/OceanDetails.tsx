@@ -82,8 +82,9 @@ export function OceanDetails({ ocean, backLabel, onBack, onLocate }: OceanDetail
       </button>
 
       <p className="feature-note">
-        Ocean areas and depths are approximate and are presented for orientation, not as legal or
-        hydrographic boundaries.
+        Countries and territories with a coastline on this ocean are highlighted on the globe.
+        Coastal groupings are approximate, include major marginal seas, and are presented for
+        orientation rather than as legal or hydrographic boundaries.
       </p>
     </div>
   );

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import type { Country, AtlasData } from '../../types';
 import { getNeighbourCountries } from '../../services/geographyData';
+import { useSpeechPreferences } from '../../hooks/useSpeechPreferences';
 import {
   formatCompactNumber,
   formatCoordinates,
@@ -29,6 +30,8 @@ import {
 } from '../../utils/format';
 import { Flag } from '../ui/Flag';
 import { CategoryBadge, DetailSection, InfoRow, categoryLabel } from '../ui/InfoRow';
+import { PronounceButton } from '../ui/PronounceButton';
+import { PronunciationSettings } from '../ui/PronunciationSettings';
 
 interface CountryDetailsProps {
   country: Country;
@@ -70,6 +73,17 @@ export function CountryDetails({
   onSelectCountry,
   onLocate,
 }: CountryDetailsProps) {
+  const {
+    supported: speechAvailable,
+    voicesReady,
+    hasVoices,
+    hasMatchingVoice,
+    gender,
+    speed,
+    voice,
+    setGender,
+    setSpeed,
+  } = useSpeechPreferences();
   const neighbours = getNeighbourCountries(country, data);
   const neighbourCodes = new Set(neighbours.map((neighbour) => neighbour.cca3));
   const missingBorders = country.borders.filter((code) => !neighbourCodes.has(code));
@@ -109,9 +123,23 @@ export function CountryDetails({
             <CategoryBadge category={country.category} />
             <span className="country-hero__continent">{country.continent}</span>
           </div>
-          <h1 className="country-hero__title">{country.commonName}</h1>
+          <div className="country-hero__title-row">
+            <h1 className="country-hero__title">{country.commonName}</h1>
+            <PronounceButton text={country.commonName} voice={voice} speed={speed} />
+          </div>
           {country.officialName !== country.commonName ? (
             <p className="country-hero__official">{country.officialName}</p>
+          ) : null}
+          {speechAvailable ? (
+            <PronunciationSettings
+              gender={gender}
+              speed={speed}
+              voicesReady={voicesReady}
+              hasVoices={hasVoices}
+              hasMatchingVoice={hasMatchingVoice}
+              onGenderChange={setGender}
+              onSpeedChange={setSpeed}
+            />
           ) : null}
           <div className="country-hero__codes">
             {country.cca2 ? <span>{country.cca2}</span> : null}

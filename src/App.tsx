@@ -6,6 +6,7 @@ import {
   LoaderCircle,
   Menu,
   MousePointer2,
+  PanelLeftOpen,
   RotateCw,
 } from 'lucide-react';
 import { AboutModal } from './components/AboutModal/AboutModal';
@@ -15,7 +16,11 @@ import { Sidebar } from './components/Sidebar/Sidebar';
 import { useAtlasData } from './hooks/useAtlasData';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useMediaQuery } from './hooks/useMediaQuery';
-import { CONTINENTS, OCEANS } from './services/geographyData';
+import {
+  CONTINENTS,
+  OCEANS,
+  OCEAN_COUNTRY_CODES,
+} from './services/geographyData';
 import type {
   AtlasData,
   BrowseCategory,
@@ -31,7 +36,9 @@ import type {
 import { DEFAULT_LAYERS } from './types';
 
 const LAYERS_KEY = 'world-atlas:map-layers:v1';
+const VIEW_STACK_KEY = 'world-atlas:view-stack:v1';
 const MAX_VIEW_STACK = 6;
+const NO_HIGHLIGHTED_CODES: ReadonlySet<string> = new Set();
 
 function findCountryByCode(data: AtlasData, code: string): Country | null {
   const normalized = code.trim().toUpperCase();
@@ -40,6 +47,50 @@ function findCountryByCode(data: AtlasData, code: string): Country | null {
     data.countries.find((country) => country.cca2 === normalized) ??
     null
   );
+}
+
+function isSidebarView(value: unknown): value is SidebarView {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Record<string, unknown>;
+  if (candidate.kind === 'browse') return true;
+  if (candidate.kind === 'country') {
+    return (
+      typeof candidate.code === 'string' &&
+      candidate.code.trim().length > 0 &&
+      (candidate.focusCapital === undefined || typeof candidate.focusCapital === 'string')
+    );
+  }
+  if (candidate.kind === 'continent') {
+    return CONTINENTS.some((continent) => continent.name === candidate.continent);
+  }
+  if (candidate.kind === 'ocean') {
+    return OCEANS.some((ocean) => ocean.id === candidate.oceanId);
+  }
+  return false;
+}
+
+function readStoredStack(): SidebarView[] | null {
+  try {
+    const raw = window.sessionStorage.getItem(VIEW_STACK_KEY);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return null;
+    const stack = parsed.filter(isSidebarView).slice(-MAX_VIEW_STACK);
+    return stack.length > 0 ? stack : null;
+  } catch {
+    return null;
+  }
+}
+
+function wasPageReload(): boolean {
+  try {
+    const navigation = performance.getEntriesByType(
+      'navigation',
+    )[0] as PerformanceNavigationTiming | undefined;
+    return navigation?.type === 'reload';
+  } catch {
+    return false;
+  }
 }
 
 function parseInitialState(): { stack: SidebarView[]; category: BrowseCategory | null } {
@@ -53,43 +104,54 @@ function parseInitialState(): { stack: SidebarView[]; category: BrowseCategory |
   const continentParam = params.get('continent')?.trim();
   const oceanParam = params.get('ocean')?.trim();
 
+  let state: { stack: SidebarView[]; category: BrowseCategory | null } = {
+    stack: [{ kind: 'browse' }],
+    category: null,
+  };
+
   if (countryCode) {
-    return {
+    state = {
       stack: [
         { kind: 'browse' },
         { kind: 'country', code: countryCode.toUpperCase(), focusCapital: capital },
       ],
       category: null,
     };
-  }
-
-  if (continentParam) {
+  } else if (continentParam) {
     const continent = CONTINENTS.find(
       (item) => item.name.toLowerCase() === continentParam.toLowerCase(),
     );
     if (continent) {
-      return {
+      state = {
         stack: [{ kind: 'browse' }, { kind: 'continent', continent: continent.name }],
         category: null,
       };
     }
-  }
-
-  if (oceanParam) {
+  } else if (oceanParam) {
     const ocean = OCEANS.find(
       (item) =>
         item.id === oceanParam.toLowerCase() ||
         item.name.toLowerCase() === oceanParam.toLowerCase(),
     );
     if (ocean) {
-      return {
+      state = {
         stack: [{ kind: 'browse' }, { kind: 'ocean', oceanId: ocean.id }],
         category: null,
       };
     }
   }
 
-  return { stack: [{ kind: 'browse' }], category: null };
+  // A reload keeps the URL but would otherwise discard the in-memory stack.
+  // Restore it only when the stored final view still matches the URL.
+  if (wasPageReload()) {
+    const stored = readStoredStack();
+    const current = state.stack[state.stack.length - 1];
+    if (stored && viewsEqual(stored[stored.length - 1], current)) {
+      return { stack: stored, category: state.category };
+    }
+  }
+
+  return state;
 }
 
 function viewsEqual(a: SidebarView, b: SidebarView): boolean {
@@ -114,6 +176,10 @@ export default function App() {
   );
   const [query, setQuery] = useState('');
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useLocalStorage<boolean>(
+    'world-atlas:sidebar-collapsed:v1',
+    false,
+  );
   const [aboutOpen, setAboutOpen] = useState(false);
   const [focus, setFocus] = useState<GlobeFocusRequest | null>(null);
   const focusKeyRef = useRef(0);
@@ -129,9 +195,58 @@ export default function App() {
   );
 
   const view = viewStack[viewStack.length - 1];
-  const selectedCode = view.kind === 'country' ? view.code : null;
-  const selectedCountry =
-    data && view.kind === 'country' ? findCountryByCode(data, view.code) : null;
+
+  useEffect(() => {
+    try {
+      window.sessionStorage.setItem(VIEW_STACK_KEY, JSON.stringify(viewStack));
+    } catch {
+      // Storage can be unavailable; navigation still works in memory.
+    }
+  }, [viewStack]);
+
+  const highlightedCodes = useMemo<ReadonlySet<string>>(() => {
+    if (!data) return NO_HIGHLIGHTED_CODES;
+    if (view.kind === 'country') {
+      const country = findCountryByCode(data, view.code);
+      return country ? new Set([country.cca3]) : NO_HIGHLIGHTED_CODES;
+    }
+    if (view.kind === 'continent') {
+      return new Set(
+        data.countries
+          .filter((country) => country.continent === view.continent)
+          .map((country) => country.cca3),
+      );
+    }
+    if (view.kind === 'ocean') return OCEAN_COUNTRY_CODES[view.oceanId];
+    return NO_HIGHLIGHTED_CODES;
+  }, [data, view]);
+
+  const highlightedFeatureCount = useMemo(
+    () =>
+      data
+        ? data.features.filter((feature) =>
+            highlightedCodes.has(feature.country.cca3),
+          ).length
+        : 0,
+    [data, highlightedCodes],
+  );
+
+  const selectionSummary = useMemo(() => {
+    if (!data) return null;
+    if (view.kind === 'country') {
+      return findCountryByCode(data, view.code)?.commonName ?? null;
+    }
+    if (view.kind === 'continent') {
+      return `${view.continent} · ${highlightedFeatureCount} highlighted`;
+    }
+    if (view.kind === 'ocean') {
+      const ocean = data.oceans.find((item) => item.id === view.oceanId);
+      return ocean
+        ? `${ocean.name} · ${highlightedFeatureCount} coastal places`
+        : null;
+    }
+    return null;
+  }, [data, view, highlightedFeatureCount]);
 
   const requestFocus = useCallback((payload: Omit<GlobeFocusRequest, 'key'>) => {
     focusKeyRef.current += 1;
@@ -306,6 +421,11 @@ export default function App() {
     setMobileOpen(false);
   }, []);
 
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed((collapsed) => !collapsed);
+    setMobileOpen(false);
+  }, [setSidebarCollapsed]);
+
   const previousView = viewStack.length > 1 ? viewStack[viewStack.length - 2] : null;
   let backLabel = 'Back to browse';
   if (previousView) {
@@ -409,7 +529,7 @@ export default function App() {
   }, [data]);
 
   return (
-    <div className="app">
+    <div className={`app${sidebarCollapsed ? ' app--sidebar-collapsed' : ''}`}>
       <Sidebar
         data={data}
         loading={loading}
@@ -436,6 +556,8 @@ export default function App() {
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
         isMobile={isMobile}
+        sidebarCollapsed={sidebarCollapsed}
+        onToggleSidebar={toggleSidebar}
       />
 
       {isMobile && mobileOpen ? (
@@ -448,6 +570,19 @@ export default function App() {
       ) : null}
 
       <main className="stage">
+        {sidebarCollapsed && !isMobile ? (
+          <button
+            type="button"
+            className="sidebar-reveal"
+            aria-label="Show sidebar"
+            aria-controls="atlas-sidebar"
+            title="Show sidebar"
+            onClick={toggleSidebar}
+          >
+            <PanelLeftOpen size={17} strokeWidth={1.9} aria-hidden="true" />
+          </button>
+        ) : null}
+
         <header className="mobile-topbar">
           <button
             type="button"
@@ -491,7 +626,7 @@ export default function App() {
           <GlobeView
             data={data}
             layers={layers}
-            selectedCode={selectedCode}
+            highlightedCodes={highlightedCodes}
             focus={focus}
             onSelectCountry={handleGlobeSelect}
           />
@@ -537,10 +672,10 @@ export default function App() {
           <span>Natural Earth · mledoze/countries · World Bank · FlagCDN</span>
         </button>
 
-        {selectedCountry ? (
+        {selectionSummary ? (
           <div className="stage-selection" role="status">
             <span className="stage-selection__label">Selected</span>
-            <span className="stage-selection__name">{selectedCountry.commonName}</span>
+            <span className="stage-selection__name">{selectionSummary}</span>
           </div>
         ) : null}
       </main>

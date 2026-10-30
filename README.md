@@ -10,10 +10,12 @@ An interactive political world atlas built on a 3D globe. Explore countries, cap
 - **Five browse categories**: Countries (194 sovereign states), Continents, Oceans, Capitals and Territories (55 dependent territories plus Kosovo, Northern Cyprus and Somaliland).
 - **Local ranked search** across country names and aliases, capitals, ISO codes, territories, continents and oceans. Flag suggestions, keyboard navigation and empty-result handling are included.
 - **Country details**: flag, common/official/native names, ISO codes, continent/region, capital(s), population, area, currencies, languages, time zones, calling code, internet TLD, independence, UN membership, coordinates, landlocked/coastal status and clickable neighbours.
+- **Country-name pronunciation**: a speaker control beside the country name reads the English common name using the browser’s installed speech-synthesis voices. Compact controls switch between female/male voices and slow/normal/fast speed, with a stop action while speaking.
 - **Clickable navigation history** with a contextual back button. Opening a neighbour or capital pushes a new view; the globe camera state is preserved.
+- **Group highlighting**: selecting a continent highlights every mapped country and territory in it; selecting an ocean highlights the countries and territories with a coastline on that ocean. The selected fill, border and raised-polygon transition match the single-country highlight.
 - **Map layers** for borders, labels, capital markers, selected-country highlight, auto-rotation and atmosphere. Each setting is saved in `localStorage` and can be reset from the layer panel.
 - **Deep links** for countries, capitals, continents and oceans.
-- **Responsive layout**: a fixed sidebar on desktop and an off-canvas drawer with a backdrop on mobile. The drawer is removed from the accessibility tree when closed.
+- **Responsive layout**: a fixed sidebar on desktop that can be hidden with the header control and restored from the edge tab, plus an off-canvas drawer with a backdrop on mobile. Hidden navigation is removed from the accessibility tree.
 - **Error and empty states** for data loading, WebGL failure, missing flags, missing IDs and no search matches.
 - **About panel** documenting data sources, attribution, cache controls and known limitations.
 
@@ -52,6 +54,9 @@ npm run data:build  # regenerate the bundled reference snapshot
 | Open a suggestion | `Enter` |
 | Close suggestions | `Escape` |
 | Select a country | Click its polygon or label on the globe, a search result, a list row or a neighbour chip |
+| Hear a country name | Open a country and press the speaker button beside its name. Press it again to stop |
+| Change pronunciation style | Use the **Voice** (Female/Male) and **Speed** (Slow/Normal/Fast) controls below the country name; both choices are remembered |
+| Highlight a continent or ocean | Open **Continents** or **Oceans** in the atlas index and select a row |
 | Rotate / zoom | Drag and scroll on the globe, or use the zoom controls |
 | Reset the view | Use the reset button below the zoom controls |
 | Toggle auto-rotation | Use the auto-rotate action in the stage toolbar |
@@ -162,8 +167,12 @@ State is kept in a capped view stack (six entries). The globe instance is create
 
 | Key | Purpose |
 | --- | --- |
-| `world-atlas:map-layers:v1` | Layer toggles and auto-rotation state |
-| `world-atlas:country-api-cache:v1` | Optional remote country-data cache, seven-day lifetime |
+| `world-atlas:map-layers:v1` | Layer toggles and auto-rotation state (`localStorage`) |
+| `world-atlas:view-stack:v1` | Per-tab navigation history, so Back still steps through the previous view after a reload (`sessionStorage`) |
+| `world-atlas:sidebar-collapsed:v1` | Desktop sidebar visibility (`localStorage`) |
+| `world-atlas:speech-gender:v1` | Preferred pronunciation voice: `female` or `male` (`localStorage`) |
+| `world-atlas:speech-speed:v1` | Pronunciation speed: `slow`, `normal` or `fast` (`localStorage`) |
+| `world-atlas:country-api-cache:v1` | Optional remote country-data cache, seven-day lifetime (`localStorage`) |
 
 The About panel can clear the cached reference data and reload the page. Layer settings can be reset from the Layers panel.
 
@@ -176,8 +185,10 @@ The About panel can clear the cached reference data and reload the page. Layer s
 - **One continent per country.** Transcontinental states appear under a single continent, following the source metadata. Continental assignments are not inferred from geometry.
 - **Capital coordinates are best-effort matches.** Some capitals, especially renamed or multi-capital cases, may lack coordinates. The details panel still lists the name.
 - **Population is a 2024 World Bank estimate where available** and is not a live census. Some small territories are not covered by the indicator.
-- **Ocean extents are conventional.** Oceans are represented by a centre point and approximate figures; the app does not draw ocean boundaries.
+- **Ocean extents are conventional.** Oceans are represented by a centre point and approximate figures; the app does not draw ocean boundaries. Ocean highlighting uses broad coastal membership, groups major marginal seas with their parent ocean, and may include or exclude a country depending on the convention used.
+- **Group highlights cover mapped polygons.** A continent or ocean selects all matching codes, but Natural Earth 1:110m does not provide a separate polygon for every small state or island territory. Those places remain selected in the data and are listed in the sidebar, but only mapped features can be coloured on the globe.
 - **Flags come from an external CDN.** Offline use or blocked requests fall back to an emoji/text treatment; flags are decorative and are not required for identification.
+- **Pronunciation depends on the browser.** Country names are read in English using the operating system/browser speech-synthesis voices. Browsers do not expose voice gender, so Female/Male is inferred from installed voice names and voice URIs; if no matching English voice is found, the app uses a fallback voice and shows a note. Availability, accent and audio quality vary by platform. Speed is applied through the speech rate. Unsupported browsers hide the pronunciation controls rather than showing a broken action.
 - **The globe needs WebGL.** If WebGL cannot start, the app shows an error in the stage while the sidebar remains usable.
 - **Very large territories and antimeridian wrapping** are rendered from the source geometry. Labels and camera framing use Natural Earth label points and may be imperfect at extreme zoom levels.
 - **No server-side rendering.** The app is a static client-side build; deep links work through query parameters after JavaScript loads.

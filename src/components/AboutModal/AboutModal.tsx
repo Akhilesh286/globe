@@ -145,6 +145,12 @@ export function AboutModal({ open, onClose, snapshotDate, sourceWarning }: About
                 Continental assignments and border lists follow the source metadata. Transcontinental
                 states appear under one continent only.
               </li>
+              <li>
+                Country-name pronunciation uses the browser&apos;s installed speech-synthesis voices
+                and reads English common names. Female/Male is inferred from voice names because
+                browsers do not expose gender. The voice and speed choices are saved in local
+                storage.
+              </li>
             </ul>
           </section>
 

@@ -165,6 +165,40 @@ export const OCEANS: OceanInfo[] = [
 const CONTINENT_LOOKUP = new Map(CONTINENTS.map((continent) => [continent.name, continent]));
 const OCEAN_LOOKUP = new Map(OCEANS.map((ocean) => [ocean.id, ocean]));
 
+/**
+ * Broad ocean-basin membership used for globe highlighting. A country can
+ * belong to more than one ocean. Major marginal seas are grouped with their
+ * parent basin, so this is an orientation aid rather than a hydrographic or
+ * legal boundary.
+ */
+export const OCEAN_COUNTRY_CODES: Record<OceanId, ReadonlySet<string>> = {
+  pacific: new Set([
+    'AUS', 'BRN', 'CAN', 'CHL', 'CHN', 'COL', 'CRI', 'ECU', 'FJI', 'GTM',
+    'HND', 'IDN', 'JPN', 'KHM', 'KOR', 'MEX', 'MYS', 'NCL', 'NIC', 'NZL',
+    'PAN', 'PER', 'PHL', 'PNG', 'PRK', 'RUS', 'SLB', 'SLV', 'THA', 'TLS',
+    'TWN', 'USA', 'VNM', 'VUT',
+  ]),
+  atlantic: new Set([
+    'AGO', 'ALB', 'ARG', 'BEL', 'BEN', 'BGR', 'BHS', 'BIH', 'BLZ', 'BRA',
+    'CAN', 'CIV', 'CMR', 'COD', 'COG', 'COL', 'CRI', 'CUB', 'CYN',
+    'CYP', 'DEU', 'DNK', 'DOM', 'DZA', 'EGY', 'ESH', 'ESP', 'EST', 'FIN',
+    'FLK', 'FRA', 'GAB', 'GBR', 'GEO', 'GHA', 'GIN', 'GMB', 'GNB', 'GNQ',
+    'GRC', 'GRL', 'GTM', 'GUY', 'HND', 'HRV', 'HTI', 'IRL', 'ISL', 'ISR',
+    'ITA', 'JAM', 'LBN', 'LBR', 'LBY', 'LTU', 'LVA', 'MAR', 'MEX', 'MNE',
+    'MRT', 'NAM', 'NGA', 'NIC', 'NLD', 'NOR', 'PAN', 'POL', 'PRI', 'PRT',
+    'PSE', 'ROU', 'RUS', 'SEN', 'SLE', 'SUR', 'SVN', 'SWE', 'SYR', 'TGO',
+    'TTO', 'TUN', 'TUR', 'UKR', 'URY', 'USA', 'VEN', 'ZAF',
+  ]),
+  indian: new Set([
+    'ARE', 'ATF', 'AUS', 'BGD', 'DJI', 'EGY', 'ERI', 'IDN', 'IND', 'IRN',
+    'IRQ', 'ISR', 'JOR', 'KEN', 'KWT', 'LKA', 'MDG', 'MMR', 'MOZ', 'MYS',
+    'OMN', 'PAK', 'QAT', 'SAU', 'SDN', 'SOL', 'SOM', 'THA', 'TLS', 'TZA',
+    'YEM', 'ZAF',
+  ]),
+  southern: new Set(['ATA']),
+  arctic: new Set(['CAN', 'GRL', 'NOR', 'RUS', 'USA']),
+};
+
 const CONTINENT_NAMES = new Set<ContinentName>([
   'Africa',
   'Antarctica',

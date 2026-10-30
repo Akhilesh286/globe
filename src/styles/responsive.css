@@ -24,6 +24,10 @@
     display: inline-grid;
   }
 
+  .sidebar__collapse {
+    display: none;
+  }
+
   .mobile-backdrop {
     position: fixed;
     inset: 0;

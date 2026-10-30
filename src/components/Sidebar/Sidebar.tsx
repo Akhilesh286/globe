@@ -3,6 +3,7 @@ import {
   Database,
   Globe2,
   Info,
+  PanelLeftClose,
   RotateCcw,
   X,
 } from 'lucide-react';
@@ -50,6 +51,8 @@ interface SidebarProps {
   mobileOpen: boolean;
   onMobileClose: () => void;
   isMobile: boolean;
+  sidebarCollapsed: boolean;
+  onToggleSidebar: () => void;
 }
 
 function SidebarSkeleton() {
@@ -101,7 +104,10 @@ export function Sidebar({
   mobileOpen,
   onMobileClose,
   isMobile,
+  sidebarCollapsed,
+  onToggleSidebar,
 }: SidebarProps) {
+  const sidebarHidden = isMobile ? !mobileOpen : sidebarCollapsed;
   const country =
     data && view.kind === 'country' ? data.countriesByCode.get(view.code) ?? null : null;
 
@@ -186,8 +192,8 @@ export function Sidebar({
       className={`sidebar ${mobileOpen ? 'sidebar--open' : ''}`}
       id="atlas-sidebar"
       aria-label="Atlas navigation"
-      aria-hidden={isMobile && !mobileOpen ? true : undefined}
-      inert={isMobile && !mobileOpen ? true : undefined}
+      aria-hidden={sidebarHidden ? true : undefined}
+      inert={sidebarHidden ? true : undefined}
     >
       <div className="sidebar__header">
         <div className="brand">
@@ -200,14 +206,26 @@ export function Sidebar({
             <span className="brand__subtitle">Political geography</span>
           </span>
         </div>
-        <button
-          type="button"
-          className="icon-button sidebar__close"
-          onClick={onMobileClose}
-          aria-label="Close navigation"
-        >
-          <X size={18} strokeWidth={2} />
-        </button>
+        <div className="sidebar__header-actions">
+          <button
+            type="button"
+            className="icon-button sidebar__collapse"
+            onClick={onToggleSidebar}
+            aria-label="Hide sidebar"
+            aria-controls="atlas-sidebar"
+            title="Hide sidebar"
+          >
+            <PanelLeftClose size={17} strokeWidth={1.9} />
+          </button>
+          <button
+            type="button"
+            className="icon-button sidebar__close"
+            onClick={onMobileClose}
+            aria-label="Close navigation"
+          >
+            <X size={18} strokeWidth={2} />
+          </button>
+        </div>
       </div>
 
       <div className="sidebar__search">

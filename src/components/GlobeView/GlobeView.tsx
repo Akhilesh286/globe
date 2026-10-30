@@ -17,7 +17,7 @@ import { escapeHtml } from '../../utils/text';
 interface GlobeViewProps {
   data: AtlasData;
   layers: LayerSettings;
-  selectedCode: string | null;
+  highlightedCodes: ReadonlySet<string>;
   focus: GlobeFocusRequest | null;
   onSelectCountry: (country: Country) => void;
 }
@@ -62,12 +62,12 @@ function categoryLabel(feature: CountryFeature): string {
 
 function featureColor(
   feature: CountryFeature,
-  selectedCode: string | null,
+  highlightedCodes: ReadonlySet<string>,
   hovered: CountryFeature | null,
   highlightSelected: boolean,
 ): string {
   const { country } = feature;
-  if (highlightSelected && selectedCode === country.cca3) return '#6BB5FF';
+  if (highlightSelected && highlightedCodes.has(country.cca3)) return '#6BB5FF';
   if (hovered && hovered.country.cca3 === country.cca3) return '#A8D4FF';
 
   const base = CONTINENT_COLORS[country.continent] ?? '#54718D';
@@ -116,7 +116,7 @@ function maxLabelRank(altitude: number): number {
 export function GlobeView({
   data,
   layers,
-  selectedCode,
+  highlightedCodes,
   focus,
   onSelectCountry,
 }: GlobeViewProps) {
@@ -124,7 +124,7 @@ export function GlobeView({
   const globeRef = useRef<GlobeInstance | null>(null);
   const hoveredRef = useRef<CountryFeature | null>(null);
   const altitudeRef = useRef(INITIAL_POV.altitude);
-  const selectedRef = useRef(selectedCode);
+  const highlightedRef = useRef(highlightedCodes);
   const layersRef = useRef(layers);
   const dataRef = useRef(data);
   const focusRef = useRef(focus);
@@ -134,7 +134,7 @@ export function GlobeView({
   const [ready, setReady] = useState(false);
   const [globeError, setGlobeError] = useState<string | null>(null);
 
-  selectedRef.current = selectedCode;
+  highlightedRef.current = highlightedCodes;
   layersRef.current = layers;
   dataRef.current = data;
   focusRef.current = focus;
@@ -143,7 +143,7 @@ export function GlobeView({
   const capColorAccessor = useCallback((item: object) => {
     return featureColor(
       item as CountryFeature,
-      selectedRef.current,
+      highlightedRef.current,
       hoveredRef.current,
       layersRef.current.highlightSelected,
     );
@@ -152,7 +152,8 @@ export function GlobeView({
   const altitudeAccessor = useCallback((item: object) => {
     const feature = item as CountryFeature;
     const isSelected =
-      layersRef.current.highlightSelected && selectedRef.current === feature.country.cca3;
+      layersRef.current.highlightSelected &&
+      highlightedRef.current.has(feature.country.cca3);
     const isHovered = hoveredRef.current?.country.cca3 === feature.country.cca3;
     if (isSelected) return 0.018;
     if (isHovered) return 0.012;
@@ -163,7 +164,7 @@ export function GlobeView({
     const feature = item as CountryFeature;
     if (
       layersRef.current.highlightSelected &&
-      selectedRef.current === feature.country.cca3
+      highlightedRef.current.has(feature.country.cca3)
     ) {
       return '#C7E4FF';
     }
@@ -183,14 +184,16 @@ export function GlobeView({
     }
 
     const rank = maxLabelRank(altitudeRef.current);
-    const key = `${rank}:${selectedRef.current ?? ''}`;
+    const highlighted = highlightedRef.current;
+    const singleHighlight = highlighted.size === 1;
+    const key = `${rank}:${highlighted.size}`;
     if (!force && key === lastLabelKeyRef.current) return;
     lastLabelKeyRef.current = key;
 
     const features = dataRef.current.features.filter(
       (feature) =>
         feature.properties.labelRank <= rank ||
-        feature.country.cca3 === selectedRef.current,
+        (singleHighlight && highlighted.has(feature.country.cca3)),
     );
     globe.labelsData(features);
   }, []);
@@ -251,10 +254,12 @@ export function GlobeView({
     globeRef.current = globe;
 
     const globeMaterial = new THREE.MeshPhongMaterial({
-      color: new THREE.Color('#0A1B30'),
-      emissive: new THREE.Color('#040B15'),
-      shininess: 4,
-      specular: new THREE.Color('#0E2946'),
+      // The globe sphere is the ocean surface: a deep blue that stays dark
+      // enough for the political land palette to remain legible.
+      color: new THREE.Color('#0D3559'),
+      emissive: new THREE.Color('#07233D'),
+      shininess: 9,
+      specular: new THREE.Color('#4C8FC4'),
     });
 
     globe
@@ -293,13 +298,13 @@ export function GlobeView({
       .labelText((item) => (item as CountryFeature).country.commonName)
       .labelColor((item) => {
         const feature = item as CountryFeature;
-        if (selectedRef.current === feature.country.cca3) return '#D9EDFF';
+        if (highlightedRef.current.has(feature.country.cca3)) return '#D9EDFF';
         return feature.country.category === 'country' ? '#DCE8F6' : '#9DB2C8';
       })
       .labelAltitude(0.012)
       .labelSize((item) => {
         const feature = item as CountryFeature;
-        return selectedRef.current === feature.country.cca3 ? 0.72 : 0.52;
+        return highlightedRef.current.has(feature.country.cca3) ? 0.72 : 0.52;
       })
       .labelIncludeDot(false)
       .labelDotRadius(0)
@@ -389,7 +394,7 @@ export function GlobeView({
     layers,
     refreshLabels,
     refreshMarkers,
-    selectedCode,
+    highlightedCodes,
     strokeColorAccessor,
   ]);
 
